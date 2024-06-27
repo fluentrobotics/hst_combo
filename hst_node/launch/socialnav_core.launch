@@ -1,0 +1,17 @@
+<launch>
+    <node 
+        pkg="hst_infer" 
+        exec="python_entrypoint.py"
+        name="hst" 
+        launch-prefix="$(find-pkg-prefix hst_infer)/.venv/bin/python"
+        output="screen"
+    />
+
+    <node 
+        pkg="skeleton_extractor" 
+        exec="python_entrypoint.py"
+        name="skeleton" 
+        launch-prefix="$(find-pkg-prefix skeleton_extractor)/.venv/bin/python"
+        output="screen"
+    />
+</launch>

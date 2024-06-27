@@ -1,0 +1,75 @@
+[tool.poetry]
+name = "hst_infer"
+version = "0.1.0"
+description = "Human Trajectory Predictor"
+authors = ["Mo Xu <xmo@umich.edu>"]
+readme = "README.md"
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+# [[tool.poetry.source]]
+# name = "PyTorch CPU"
+# url = "https://download.pytorch.org/whl/cpu"
+# priority = "supplemental"
+
+# [[tool.poetry.source]]
+# name = "PyTorch CUDA 11.8"
+# url = "https://download.pytorch.org/whl/cu118"
+# priority = "supplemental"
+
+[tool.poetry.dependencies]
+python = "~3.10"
+# torch = {version = "*", source = "PyTorch CUDA 11.8"}
+# torchaudio = {version = "*", source = "PyTorch CUDA 11.8"}
+# torchvision = {version = "*", source = "PyTorch CUDA 11.8"}
+matplotlib = "^3.8.0"
+loguru = "^0.7.2"
+numpy = "^1.26.1"
+onnx = ">=1.12.0"
+opencv-python = "^4.8.1.78"
+openvino-dev = ">=2023"
+pandas = "^2.1.1"
+pillow = "^10.1.0"
+psutil = "^5.9.6"
+py-cpuinfo = "^9.0.0"
+pyyaml = "^6.0.1"
+requests = "^2.31.0"
+rospkg = "^1.5.0"
+scipy = "^1.11.3"
+seaborn = "^0.13.0"
+thop = "^0.1.1.post2209072238"
+tqdm = "^4.66.1"
+ultralytics = "^8.0.199"
+lapx = "^0.5.2"
+pycryptodome = "^3.19.1"
+pycryptodomex = "^3.19.1"
+gnupg = "^2.3.1"
+imageio = "^2.33.1"
+
+# ros2-numpy = "^0.0.4"
+
+absl-py = "^1.4"
+gin-config = "^0.5"
+open3d = "^0.17"
+
+tensorflow = "~2.14"
+tensorflow-io-gcs-filesystem = "^0.23.0"
+tensorflow-datasets = "^4.9"
+tensorflow-graphics = "^2021.12"
+tensorflow-probability = "^0.21"
+tf-models-official = "^2.5"
+
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.9.1"
+mypy = "^1.6.0"
+flake8 = "^6.1.0"
+ipykernel = "^6.28.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

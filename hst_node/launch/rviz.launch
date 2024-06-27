@@ -1,0 +1,7 @@
+<launch>
+    <node
+        pkg="rviz2"
+        exec="rviz2"
+        args="-d $(find-pkg-share hst_infer)/rviz2/hst_core.rviz"
+    />
+</launch>

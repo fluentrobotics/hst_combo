@@ -1,0 +1,9 @@
+<launch>
+    <node 
+        pkg="hst_infer" 
+        exec="python_entrypoint.py"
+        name="hst" 
+        launch-prefix="$(find-pkg-prefix hst_infer)/.venv/bin/python"
+        output="screen"
+    />
+</launch>
