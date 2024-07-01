@@ -6,7 +6,7 @@ from hst_infer.utils import get_path
 HST_INFER_NODE = "hst"
 MULTI_HUMAN_SKELETON_TOPIC = 'skeleton/data/multi_human'
 
-SRC_PROJECT_PATH = get_path.get_src_project_dir_path("src/hst_node")
+SRC_PROJECT_PATH = get_path.get_src_project_dir_path("src/hst_combo/hst_node")
 
 # frame / coordinate
 CAMERA_FRAME = "camera_color_optical_frame"
