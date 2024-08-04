@@ -36,7 +36,7 @@ In this repository, we have three packages, including `hst_infer`, `skeleton_ext
 ### Run
 If you are using `FLUENT-LAB-11`, you do not have to configure the environment and can just go to the `Run` step.
 
- * Get into the virtual environment: 
+ * Get into the virtual environment (Only if working with Stretch): 
  ```shell
  cd /path/to/ros-devcontainer
  ./enter-container.sh
@@ -62,3 +62,9 @@ If you are using `FLUENT-LAB-11`, you do not have to configure the environment a
  ```shell
  ros2 launch hst_infer rviz.launch
  ```
+
+* If you encounter a tensorflow error "Input dims must be <= 5 and >=1" when running `hst_infer`:
+```shell
+export TF_DISABLE_MKL=1
+export TF_ENABLE_ONEDNN_OPTS=0
+```
