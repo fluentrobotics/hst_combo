@@ -3,7 +3,7 @@
 ## Introduction
 This repository is built for the social navigation project at fluent robotics lab at the University of Michigan Robot Institute. 
 
-In this repository, we have three packages, including `hst_node`, `skeleton_extractor(Multi-human Skeleton RGBD)` and `skeleton_interfaces`. NOTE, their own github repo are updated to the latest, so please use the packages here in this repo.
+In this repository, we have three packages, including `hst_infer`, `skeleton_extractor(Multi-human Skeleton RGBD)` and `skeleton_interfaces`. NOTE, their own github repo are updated to the latest, so please use the packages here in this repo.
 
  * [skeleton_extractor](https://github.com/fluentrobotics/Multi-human_Skeleton_RGBD): 
  Branch `ros2_humble` is developed in Ubuntu22(focal) ROS2 humble to track human and skeleton by YOLOv8 and kalman filters. The skeleton_extractor generates 3D human skeleton data from RGB-D camera and publish skeleton data in a node through message/interface `skeleton_interfaces`.
@@ -16,8 +16,8 @@ In this repository, we have three packages, including `hst_node`, `skeleton_extr
         * geometry_msgs/Point32 human_center: human geometrical center
         * geometry_msgs/Point32[] keypoint_data: human skeleton data
         * bool[] keypoint_mask: True -> valid keypoint, False -> invalid/meaningless keypoint
- * [hst_node](https://github.com/AlfredMoore/hst_node):
- The hst_node is built to load skeleton data in a deque then the deque will generate a time-series horizon, including historical data and future predition(np.nan). The Human Scene Transformer loads the data array from deque and make human trajectory prediction in a horizon. 
+ * [hst_infer](https://github.com/AlfredMoore/hst_node):
+ The hst_infer is built to load skeleton data in a deque then the deque will generate a time-series horizon, including historical data and future predition(np.nan). The Human Scene Transformer loads the data array from deque and make human trajectory prediction in a horizon. 
     * horizon total length: 19 step
     * history length: 6 step
     * presence: 1 step
@@ -28,9 +28,9 @@ In this repository, we have three packages, including `hst_node`, `skeleton_extr
 
 ### Dependency Requirement
  * Ubuntu22.04, [docker](https://github.com/fluentrobotics/ros-devcontainer/tree/humble-cu118) is highly recommend. Select the repository branch according to your requirement.
- * Python3.10, `peotry` is highly recommend as the python virtual environment management tool. The `poetry` will be installed automatically in the dockerfile. `Anaconda3` is not recommended because there might be some conflict between `ROS` packages and `Anaconda3` env.
+ * Python3.10, `poetry` is highly recommend as the python virtual environment management tool. The `poetry` will be installed automatically in the dockerfile. `Anaconda3` is not recommended because there might be some conflict between `ROS` packages and `Anaconda3` env.
  * ROS2 Humble
- * Python dependet packages are shown in `pyproject.toml` in `hst_node` and `Multi-human_Skeleton_RGBD`. You can use `poetry` to install them.
+ * Python dependent packages are shown in `pyproject.toml` in `hst_node` and `Multi-human_Skeleton_RGBD`. You can use `poetry` to install them.
     * `poetry shell` to start poetry integrated shell, then `poetry install` to install dependecies and virtual environment automatically.
 
 ### Run
@@ -49,16 +49,16 @@ If you are using `FLUENT-LAB-11`, you do not have to configure the environment a
 
  * Compile and build(Optional):
  ```shell
- colcon build --pakcge-select hst_node skeleton_extractor skeleton_interface
+ colcon build --pakcge-select hst_infer skeleton_extractor skeleton_interface
  ```
 
  * Launch ros nodes:
  ```shell
- ros2 launch hst_node socialnav_core.launch
+ ros2 launch hst_infer socialnav_core.launch
  ```
  The node will be waiting for the ROS bag topics or real-time ROS topics. 
 
  * Launch rviz:
  ```shell
- ros2 launch hst_node rviz.launch
+ ros2 launch hst_infer rviz.launch
  ```
