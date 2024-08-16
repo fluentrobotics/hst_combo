@@ -14,7 +14,8 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/HumanSkeleton.msg"
   "msg/MultiHumanSkeleton.msg"
-  DEPENDENCIES geometry_msgs # Add packages that above messages depend on, in this case geometry_msgs for Sphere.msg
+  "msg/Predictions.msg"
+  DEPENDENCIES geometry_msgs std_msgs # Add packages that above messages depend on, in this case geometry_msgs for Sphere.msg
 )
 ament_export_dependencies(rosidl_default_runtime)
 

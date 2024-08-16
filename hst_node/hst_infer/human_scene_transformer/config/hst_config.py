@@ -88,7 +88,7 @@ hst_dataset_param = JRDBDatasetParams(
 
 hst_model_param = ModelParams(
     agents_feature_config= {
-        'agents/keypoints': agent_feature_encoder.AgentKeypointsEncoder,
+        #'agents/keypoints': agent_feature_encoder.AgentKeypointsEncoder,
         'agents/position': agent_feature_encoder.AgentPositionEncoder
     },
     agents_position_key= 'agents/position',

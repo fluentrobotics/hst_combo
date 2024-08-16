@@ -126,7 +126,8 @@ class skeletal_extractor_node(Node):
         # Subscriber ##########################################################
         if self.compressed['rgb']:
             self._rgb_sub = self.create_subscription(
-                CompressedImage, COLOR_COMPRESSED_FRAME_TOPIC, self._rgb_callback, 1
+                CompressedImage, COLOR_COMPRESSED_FRAME_TOPIC, self._rgb_callback, rclpy.qos.QoSProfile(depth=1, history=rclpy.qos.HistoryPolicy.KEEP_LAST,
+                                                                                                        reliability=rclpy.qos.ReliabilityPolicy.BEST_EFFORT)
             )
             self._rgb_msg: CompressedImage = None
         else:

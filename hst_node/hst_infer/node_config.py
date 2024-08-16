@@ -6,7 +6,7 @@ from hst_infer.utils import get_path
 HST_INFER_NODE = "hst"
 MULTI_HUMAN_SKELETON_TOPIC = 'skeleton/data/multi_human'
 
-SRC_PROJECT_PATH = get_path.get_src_project_dir_path("src/hst_node")
+SRC_PROJECT_PATH = get_path.get_src_project_dir_path("src/hst_combo/hst_node")
 
 # frame / coordinate
 CAMERA_FRAME = "camera_color_optical_frame"
@@ -16,6 +16,10 @@ STRETCH_BASE_FRAME = "base_link"
 RVIZ_HST: bool = True
 RVIZ_HST_TOPIC = HST_INFER_NODE + "/vis/human_trajectory"
 CURRENT_COLOR = dict(r=1.0, g=0.5, b=0.5, a=1.0)
+
+# social controller
+SOCIAL_CONTROLLER: bool = True
+PREDICTION_TOPIC = HST_INFER_NODE + '/predictions'
 
 # hst parameters
 WINDOW_LENGTH = 19
@@ -30,8 +34,9 @@ MAX_AGENT_NUM = 12
 KEYPOINT_INTERPOLATION = True
 
 # Human Scene Transformer
-NETWORK_PARAM_PATH: Path = SRC_PROJECT_PATH / "hst_net_param"
+NETWORK_PARAM_PATH: Path = SRC_PROJECT_PATH / "hst_net_param_no_keypoints"
 HST_CKPT_PATH: Path = NETWORK_PARAM_PATH / "ckpts/ckpt-30"
+NO_KEYPOINTS: bool = True
 
 # Evaluation
 EVALUATION_NODE: bool = True

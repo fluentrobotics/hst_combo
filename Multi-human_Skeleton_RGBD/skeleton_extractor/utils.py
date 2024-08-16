@@ -9,9 +9,9 @@ import numpy as np
 def get_project_dir_path() -> Path:
     # logger.debug(f"debug:{__file__}\n{Path(__file__).parents}")
     for parent in Path(__file__).parents:
-        if (parent / "src/Multi-human_Skeleton_RGBD").exists():
+        if (parent / "src/hst_combo/Multi-human_Skeleton_RGBD").exists():
             # parent is workspace directory
-            return parent / "src/Multi-human_Skeleton_RGBD"
+            return parent / "src/hst_combo/Multi-human_Skeleton_RGBD"
         
     assert Exception("Cannot find the source code path")
 

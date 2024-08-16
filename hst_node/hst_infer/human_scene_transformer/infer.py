@@ -42,7 +42,7 @@ def init_model() -> hst_model.HumanTrajectorySceneTransformer:
 
 
 if __name__ == "__main__":
-# export TF_ENABLE_ONEDNN_OPTS=0
-# export TF_DISABLE_MKL=1
-# export PYTHONPATH=/home/xmo/ros2_ws/src/hst_node:$PYTHONPATH
+    # export TF_ENABLE_ONEDNN_OPTS=0
+    # export TF_DISABLE_MKL=1
+    # export PYTHONPATH=/home/xmo/ros2_ws/src/hst_node:$PYTHONPATH
     init_model()

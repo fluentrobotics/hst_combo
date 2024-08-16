@@ -1,0 +1,2 @@
+std_msgs/Float32MultiArray predictions
+std_msgs/Float32MultiArray logits
