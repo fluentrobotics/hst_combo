@@ -51,9 +51,11 @@ def add_multihuman_future_pos_markers(
     color_heatmap = modes_prob_to_heatmap_color(modes_prob)
 
     A,T,M,D = multi_human_pos_ATMD.shape       # [A,T,2]
+    print(A, T, M, D)
 
     for agent_idx in range(A):
         if multi_human_mask_AT[agent_idx,present_idx]:
+            print("INDICSE TRUE: ", agent_idx, present_idx)
             # # current
             # current_point = Point(
             #     x= multi_human_pos_ATMD[agent_idx,present_idx+1,2,0].item(),

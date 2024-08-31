@@ -16,7 +16,7 @@ MULTI_HUMAN_SKELETON_TOPIC = 'skeleton/data/multi_human'
 ## RViz Markers
 RVIZ_IMG2D_SKELETON_TOPIC = '/skeleton/vis/keypoints_2d_img'
 RVIZ_MARKER3D_SKELETON_TOPIC = '/skeleton/vis/keypoints_3d_makers'
-PUB_FREQ:float = 5
+PUB_FREQ:float = 10
 
 CAMERA_FRAME = "camera_color_optical_frame"
 STRETCH_BASE_FRAME = "base_link"

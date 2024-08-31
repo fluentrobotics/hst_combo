@@ -39,9 +39,9 @@ HST_CKPT_PATH: Path = NETWORK_PARAM_PATH / "ckpts/ckpt-30"
 NO_KEYPOINTS: bool = True
 
 # Evaluation
-EVALUATION_NODE: bool = True
+EVALUATION_NODE: bool = False
 PICKLE_DIR_PATH: Path = SRC_PROJECT_PATH / "pickle"
 
 ## Motion Capture
-MOTION_CAPTURE_TF: bool = False
+MOTION_CAPTURE_TF: bool = True
 HUMAN_FRAME: str = "human"
