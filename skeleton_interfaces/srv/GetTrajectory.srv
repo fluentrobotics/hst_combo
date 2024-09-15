@@ -1,0 +1,7 @@
+geometry_msgs/PoseStamped       robot_goal
+---
+bool                            success
+string                          message
+geometry_msgs/Twist             cmd_vel
+Trajectory           robot_trajectory
+AgentTrajectoryArray human_trajectories 

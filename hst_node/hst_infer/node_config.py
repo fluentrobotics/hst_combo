@@ -22,26 +22,30 @@ SOCIAL_CONTROLLER: bool = True
 PREDICTION_TOPIC = HST_INFER_NODE + '/predictions'
 
 # hst parameters
-WINDOW_LENGTH = 19
-HISTORY_LENGTH = 6
-PREDICTION_MODES_NUM = 6
+WINDOW_LENGTH = 20
+HISTORY_LENGTH = 7
+PREDICTION_MODES_NUM = 20
 
 KEYPOINT_NUM = 17
 DIM_XYZ = 3
-MAX_AGENT_NUM = 12
+MAX_AGENT_NUM = 14
+ACTIVE_AGENT_NUM = 1
 
 # yolo keypoints to hst keypoints
 KEYPOINT_INTERPOLATION = True
 
 # Human Scene Transformer
-NETWORK_PARAM_PATH: Path = SRC_PROJECT_PATH / "hst_net_param_no_keypoints"
-HST_CKPT_PATH: Path = NETWORK_PARAM_PATH / "ckpts/ckpt-30"
+#NETWORK_PARAM_PATH: Path = SRC_PROJECT_PATH / "hst_net_param_no_keypoints"
+NETWORK_PARAM_PATH: Path = SRC_PROJECT_PATH / "pedestrians_zara1"
+HST_CKPT_PATH: Path = NETWORK_PARAM_PATH / "ckpts/ckpt-20"
 NO_KEYPOINTS: bool = True
 
 # Evaluation
-EVALUATION_NODE: bool = False
+EVALUATION_NODE: bool = True
 PICKLE_DIR_PATH: Path = SRC_PROJECT_PATH / "pickle"
 
 ## Motion Capture
 MOTION_CAPTURE_TF: bool = True
 HUMAN_FRAME: str = "human"
+EGOCENTRIC: bool = False
+MOTION_CAPTURE_HISTORY: bool = True

@@ -89,7 +89,8 @@ hst_dataset_param = JRDBDatasetParams(
 hst_model_param = ModelParams(
     agents_feature_config= {
         #'agents/keypoints': agent_feature_encoder.AgentKeypointsEncoder,
-        'agents/position': agent_feature_encoder.AgentPositionEncoder
+        'agents/position': agent_feature_encoder.AgentPositionEncoder,
+        #'agents/orientation': agent_feature_encoder.Agent2DOrientationEncoder
     },
     agents_position_key= 'agents/position',
     agents_orientation_key= 'agents/orientation',
@@ -104,21 +105,21 @@ hst_model_param = ModelParams(
         ),
     drop_prob= 0.1,
     feature_embedding_size= 128,
-    hidden_size= 128,
+    hidden_size= 64,
     is_hidden_generator= is_hidden_generators.BPIsHiddenGenerator,
     ln_eps= 1e-6,
     mask_style= 'has_historic_data',
     num_conv_filters= (32, 32, 64, 64, 128),
     num_heads= 4,
     num_history_steps= int(HISTORY_LENGTH),
-    num_modes= 6,
+    num_modes= 20,
     num_steps= int(WINDOW_LENGTH),
     prediction_head= head.Prediction2DPositionHeadLayer,
     prediction_head_hidden_units= None,
 
     scene_encoder= None,
-    timestep= 1/3,
-    transformer_ff_dim= 128,
+    timestep= 0.4,
+    transformer_ff_dim= 64,
 
 
 )

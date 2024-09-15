@@ -12,6 +12,8 @@ from hst_infer.node_config import *
 from hst_infer.utils.logger import logger
 from hst_infer.utils.humanid_to_markerid import get_marker_id, marker_id_offset
 
+import time
+
 def add_multihuman_future_pos_markers(
         multi_human_pos_ATMD: np.ndarray,
         multi_human_mask_AT: np.ndarray,
@@ -52,10 +54,10 @@ def add_multihuman_future_pos_markers(
 
     A,T,M,D = multi_human_pos_ATMD.shape       # [A,T,2]
     print(A, T, M, D)
-
+    print(time.time())
     for agent_idx in range(A):
         if multi_human_mask_AT[agent_idx,present_idx]:
-            print("INDICSE TRUE: ", agent_idx, present_idx)
+            #print("INDICSE TRUE: ", agent_idx, present_idx)
             # # current
             # current_point = Point(
             #     x= multi_human_pos_ATMD[agent_idx,present_idx+1,2,0].item(),
@@ -73,6 +75,7 @@ def add_multihuman_future_pos_markers(
                         y = multi_human_pos_ATMD[agent_idx,t_idx,m_idx,1].item(),
                         z = float(),
                     )
+                    #print("FUTURE POINT: ", agent_idx, t_idx, m_idx, future_point.x, future_point.y)
                     points_list.append(future_point)
                     if heatmap:
                         colors_list.append(color_heatmap[m_idx])

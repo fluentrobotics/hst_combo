@@ -71,6 +71,7 @@ class AgentPositionEncoder(tf.keras.layers.Layer):
         activation=None)
 
   def call(self, input_batch):
+    print("YUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUP")
     not_is_hidden = tf.logical_not(input_batch['is_hidden'])
     mask = tf.logical_and(input_batch[f'has_data/{self.key}'], not_is_hidden)
     mask = tf.repeat(mask, tf.shape(input_batch[self.key])[-1], axis=-1)
@@ -95,6 +96,7 @@ class Agent2DOrientationEncoder(tf.keras.layers.Layer):
         activation=None)
 
   def call(self, input_batch):
+    print("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOPE")
     orientation = input_batch[self.key]
     orientation_embedding = tf.concat([
         self.embedding_layer(tf.math.sin(orientation)),
