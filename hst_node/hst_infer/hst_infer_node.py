@@ -113,8 +113,6 @@ class HST_infer_node(Node):
                     self.human_positions[i] = [pose]
             except:
                 self.human_positions[i] = []
-                
-
     
     def _skeleton_callback(self, msg: MultiHumanSkeleton):
         start_time = time.time()
@@ -128,7 +126,7 @@ class HST_infer_node(Node):
         A,T,K,D = keypointATKD.shape
 
         current_human_id_set = self.skeleton_databuffer.get_current_multihumanID_set()
-        print("CURRENT HUMAN ID SET: ", current_human_id_set)
+        #print("CURRENT HUMAN ID SET: ", current_human_id_set)
         if len(current_human_id_set) == 0:
             # TODO: delete all rviz
             if RVIZ_HST:
@@ -228,7 +226,7 @@ class HST_infer_node(Node):
 
             # To HST tensor input
             agent_position = tf.convert_to_tensor(human_pos_ATD_stretch[np.newaxis,...,:2])     # 2D position
-            print("AGENT POSITION HST SHAPE ", agent_position.shape)
+            #print("AGENT POSITION HST SHAPE ", agent_position.shape)
             agent_keypoint = tf.convert_to_tensor(
                 keypoints.human_keypoints.map_yolo_to_hst_batch(
                     keypoints_ATKD= keypointATKD_stretch,
@@ -257,7 +255,7 @@ class HST_infer_node(Node):
             )
 
             #print("HUMAN POS ATD MAP SHAPE: ", human_pos_ATD_map.shape)
-            print("AGENT POSITION MAP AFTER: ", agent_position_map)
+            #print("AGENT POSITION MAP AFTER: ", agent_position_map)
             #print("AGENT ORIENTATION MAP: ", agent_orientation_map)
 
             human_pos_ATD_map = agent_position_map_np.squeeze()
@@ -336,7 +334,7 @@ class HST_infer_node(Node):
 
             if RVIZ_HST:
                 markers_list = list()
-                print("VIS")
+                #print("VIS")
                 if EGOCENTRIC:
                     multi_human_pos_ATMD = np.squeeze(agent_position_pred_stretch, axis=0)       # remove batch 1
                 else:
@@ -424,7 +422,7 @@ class HST_infer_node(Node):
                     else:
                         human_pos_save = human_pos_ATD_map
                     #print("HUMAN POS SAVE: ", human_pos_save)
-                    print("HUMAN T: ", human_t)
+                    #print("HUMAN T: ", human_t)
                     data_to_save = {
                         "human_pos_ground_true_ATD": human_pos_save,
                         "human_pos_mask_AT": multi_human_mask_AT,
