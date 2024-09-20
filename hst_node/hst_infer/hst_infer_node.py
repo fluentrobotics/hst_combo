@@ -57,9 +57,9 @@ class HST_infer_node(Node):
 
         # Subscriber #######################################
         ### human skeleton msg 
-        self._skeleton_sub = self.create_subscription(
-            MultiHumanSkeleton, MULTI_HUMAN_SKELETON_TOPIC, self._skeleton_callback, 5
-        )
+        # self._skeleton_sub = self.create_subscription(
+        #     MultiHumanSkeleton, MULTI_HUMAN_SKELETON_TOPIC, self._skeleton_callback, 5
+        # )
         ### tf2
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
@@ -101,7 +101,8 @@ class HST_infer_node(Node):
         self.last_mocap_pose = None
         self.prediction_callback_counter = 0
 
-        self.timer = self.create_timer(0.01, self.timer_callback)
+        self.timer = self.create_timer(0.1, self.timer_callback)
+        self.prediction_timer = self.create_timer(0.1, self._prediction_timer_callback)
 
     def timer_callback(self) -> None:
         for i in range(ACTIVE_AGENT_NUM):
@@ -113,6 +114,155 @@ class HST_infer_node(Node):
                     self.human_positions[i] = [pose]
             except:
                 self.human_positions[i] = []
+
+    def _prediction_timer_callback(self) -> None:
+        start_time = time.time()
+
+        if EVALUATION_NODE:
+            human_t = {}
+            agent_position_map_np = np.zeros((1, MAX_AGENT_NUM, WINDOW_LENGTH, 2))
+            agent_orientation_map_np = np.zeros((1, MAX_AGENT_NUM, WINDOW_LENGTH, 1))
+
+            tracked_agents = []
+            for i in range(ACTIVE_AGENT_NUM):
+                if len(self.human_positions[i]) > 0:
+                    for j in range(0, min(len(self.human_positions[i]), HISTORY_LENGTH * 4), 4):
+                        agent_position_map_np[:,i,HISTORY_LENGTH - int(j / 4),:] = np.array(self.human_positions[i][-1 - j][:2])
+                        #agent_orientation_map_np[:,i,HISTORY_LENGTH,:] = np.array(self.human_positions[i][-1][2])
+                    agent_position_map_np[:,i,HISTORY_LENGTH,:] = np.array(self.human_positions[i][-1][:2])
+                    agent_orientation_map_np[:,i,HISTORY_LENGTH,:] = np.array(self.human_positions[i][-1][2])
+                    tracked_agents.append(i)
+                    human_t[i] = self.human_positions[i][-1]
+
+        print("HUMAN POSITIONS: ", self.human_positions)
+        print("AGENT POSITION MAP NP: ", agent_position_map_np)
+
+        ### robot position
+        robot_pos_TD = np.zeros((HISTORY_LENGTH, DIM_XYZ))
+
+        if MOTION_CAPTURE_HISTORY:
+            # agent_position_map_np[:,:,:HISTORY_LENGTH,:] = self.agent_poses[:,:,1:HISTORY_LENGTH+1,:] #Could be causing problems
+            # agent_orientation_map_np[:,:,:HISTORY_LENGTH,:] = self.agent_orientations[:,:,1:HISTORY_LENGTH+1,:]
+            # #print("AGENT POSITION MAP NP: ", agent_position_map_np)
+            # self.agent_poses = agent_position_map_np
+            # self.agent_orientations = agent_orientation_map_np
+            agent_position_np_offset = agent_position_map_np.copy()
+            #agent_position_np_offset[:,0,:HISTORY_LENGTH+1,0] = agent_position_map_np[:,0,:HISTORY_LENGTH+1,0]
+            agent_position_map = tf.convert_to_tensor(agent_position_np_offset)
+            agent_orientation_map = tf.convert_to_tensor(agent_orientation_map_np)
+        else:
+            agent_position_map = tf.convert_to_tensor(human_pos_ATD_map[np.newaxis,...,:2])     # 2D position
+
+        # no agent orientation data
+        agent_orientation = tf.convert_to_tensor(np.full((1,1,hst_config.hst_dataset_param.num_steps,1),
+                                                        np.nan, dtype=float))
+        # TODO: robot remains static
+        t, r = self.tf2_array_transformation(source_frame=STRETCH_BASE_FRAME, target_frame='map')
+        self.robot_positions.append(t)
+        robot_position = np.array(self.robot_positions[len(self.robot_positions)-hst_config.hst_dataset_param.num_steps:])
+        robot_position = tf.convert_to_tensor(np.expand_dims(robot_position, 0))
+
+        input_batch = {
+            'agents/position': agent_position_map,
+            'robot/position': robot_position,
+            }
+
+        inference_start_time = time.time()
+        full_pred, output_batch = self.model(input_batch, training=False)
+        agent_position_pred = full_pred['agents/position']
+        agent_position_logits = full_pred['mixture_logits']
+
+        app_np = tf.squeeze(agent_position_pred).numpy()
+        apl_np = tf.squeeze(agent_position_logits).numpy()
+
+        try:
+            agent_position_pred = agent_position_pred.numpy()
+            agent_position_logits = np.squeeze(
+                agent_position_logits.numpy()
+            )
+        except:
+            logger.error(f"cannot convert agent position into numpy")
+
+        assert agent_position_logits.shape == (PREDICTION_MODES_NUM,) ,"Incorrect prediction modes"
+        agent_position_prob = np.exp(agent_position_logits) / sum(np.exp(agent_position_logits))
+
+        predarray = Float32MultiArray()
+        print("LOGITS: ", apl_np)
+        #print("PREDICTION 1: ", app_np[0,:,0,:])
+        #print("PREDICTION 2: ", app_np[1,:,0,:])
+        #print("PREDICTION 1 STRETCH: ", app_np_stretch[0,:,0,:])
+        #print("PREDICTION 2 STRETCH: ", app_np_stretch[1,:,0,:])
+        logitarray = Float32MultiArray()
+        if EGOCENTRIC:
+            predarray.data = app_np_stretch.flatten().tolist()
+            logitarray.data = apl_np_stretch.flatten().tolist()
+        else:
+            predarray.data = app_np.flatten().tolist()
+            logitarray.data = apl_np.flatten().tolist()
+        prediction_msg = Predictions()
+        prediction_msg.predictions = predarray
+        prediction_msg.logits = logitarray
+
+        num_agents_int = Int32()
+        num_agents_int.data = ACTIVE_AGENT_NUM
+        prediction_msg.num_agents = num_agents_int
+
+        max_agents_int = Int32()
+        max_agents_int.data = MAX_AGENT_NUM
+        prediction_msg.max_agents = max_agents_int
+
+        history_length_int = Int32()
+        history_length_int.data = HISTORY_LENGTH
+        prediction_msg.history_length = history_length_int
+
+        window_length_int = Int32()
+        window_length_int.data = WINDOW_LENGTH
+        prediction_msg.window_length = window_length_int
+
+        timestep_float = Float32()
+        timestep_float.data = hst_config.hst_model_param.timestep
+        prediction_msg.timestep = timestep_float
+
+        self._prediction_pub.publish(prediction_msg)
+        current_time = time.time()
+        print("TIME: ", current_time - self.time, current_time)
+        self.time = current_time
+        #print("TOTAL RUNTIME: ", time.time() - start_time)
+
+
+        if EVALUATION_NODE:
+            # save pickles of skeletons, traj prediction, mocap
+            pickle_file_path = PICKLE_DIR_PATH / "evaluation_data_multi.pkl"
+            multi_human_pos_ATMD = np.squeeze(agent_position_pred, axis=0)
+            #print("HUMAN POS SAVE: ", human_pos_save)
+            #print("HUMAN T: ", human_t)
+            data_to_save = {
+                "human_pos_HST_ATMD": multi_human_pos_ATMD,
+                "HST_mode_weights": agent_position_prob,
+                "human_T": human_t,
+            }
+
+            if self.counter == 0:
+                write_mod = 'wb'
+            else:
+                write_mod = 'ab'
+
+            with open(pickle_file_path.as_posix(), write_mod) as pickle_hd:
+                pickle.dump(data_to_save, pickle_hd)
+                logger.success(f"Dump pickle at step {self.counter}")
+                self.counter += 1
+            # print("then pickle dump")
+            # get_hst_infer_latency(self, msg)
+            
+            # debug ###
+            # logger.debug(f"Buffer depth:{len(self.skeleton_databuffer)}\n")
+            # logger.debug(f"\nget_image:{msg.header.stamp}\nreceive_skeleton:{t2}\nafter_databuffer:{self.get_clock().now()}")
+            # logger.debug(f"keypointATKD nonzero:{np.nonzero(keypointATKD)}\n \
+            #       human position nonzero:{np.nonzero(human_pos_ATD)}\n \
+            #       mask sparse:{np.nonzero(keypoint_mask_ATK)}\n \
+            #       ")
+            # exit()
+            ##
     
     def _skeleton_callback(self, msg: MultiHumanSkeleton):
         start_time = time.time()
@@ -124,6 +274,8 @@ class HST_infer_node(Node):
         self.skeleton_databuffer.receive_msg(msg)
         keypointATKD, human_pos_ATD, keypoint_mask_ATK = self.skeleton_databuffer.get_data_array()
         A,T,K,D = keypointATKD.shape
+
+        print("ATKD: ", A, T, K, D)
 
         current_human_id_set = self.skeleton_databuffer.get_current_multihumanID_set()
         #print("CURRENT HUMAN ID SET: ", current_human_id_set)
@@ -180,7 +332,6 @@ class HST_infer_node(Node):
                 keypointATKD_stretch[:,:HISTORY_LENGTH-self.prediction_callback_counter,:,:] = np.zeros_like(keypointATKD_stretch[:,:HISTORY_LENGTH-self.prediction_callback_counter,:,:])
                 human_pos_ATD_stretch[:,:HISTORY_LENGTH-self.prediction_callback_counter,:] = np.zeros_like(human_pos_ATD_stretch[:,:HISTORY_LENGTH-self.prediction_callback_counter,:])
             self.prediction_callback_counter = self.prediction_callback_counter + 1
-
 
             #print("MAP AFTER ZEROING: ", human_pos_ATD_map[0])
 
@@ -370,7 +521,7 @@ class HST_infer_node(Node):
                 markerarray.markers = markers_list
                 self._traj_marker_pub.publish(markerarray)
                 predarray = Float32MultiArray()
-                #print("LOGITS: ", apl_np)
+                print("LOGITS: ", apl_np)
                 #print("PREDICTION 1: ", app_np[0,:,0,:])
                 #print("PREDICTION 2: ", app_np[1,:,0,:])
                 #print("PREDICTION 1 STRETCH: ", app_np_stretch[0,:,0,:])
@@ -408,7 +559,7 @@ class HST_infer_node(Node):
 
                 self._prediction_pub.publish(prediction_msg)
                 current_time = time.time()
-                print("TIME: ", current_time - self.time)
+                print("TIME: ", current_time - self.time, current_time)
                 self.time = current_time
                 #print("TOTAL RUNTIME: ", time.time() - start_time)
 
