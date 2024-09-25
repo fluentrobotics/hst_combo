@@ -24,10 +24,11 @@ from tf2_geometry_msgs import do_transform_point
 
 # Message type
 from std_msgs.msg import Int32MultiArray, Float32MultiArray, Header, ColorRGBA, MultiArrayDimension, Float32, Int32
-from geometry_msgs.msg import PoseArray, Pose, Quaternion, Point, PointStamped, Transform, TransformStamped
+from geometry_msgs.msg import PoseArray, Pose, Quaternion, Point, PointStamped, Transform, TransformStamped, PoseWithCovariance, AccelWithCovariance, TwistWithCovariance
 from visualization_msgs.msg import Marker, MarkerArray
 from sensor_msgs.msg import Image, CompressedImage, CameraInfo
 from skeleton_interfaces.msg import MultiHumanSkeleton, HumanSkeleton, Predictions
+from cohan_msgs.msg import TrackedAgents, TrackedAgent, TrackedSegment
 from cv_bridge import CvBridge
 
 # inference pipeline
@@ -84,6 +85,12 @@ class HST_infer_node(Node):
             self._prediction_pub = self.create_publisher(
                 Predictions, PREDICTION_TOPIC, 5
             )
+
+        if TRACKED_AGENTS:
+            self._tracked_agents_pub = self.create_publisher(
+                TrackedAgents, TRACKED_AGENTS_TOPIC, 5
+            )
+
         # logger
         logger.info(
             f"\nNode Name: {HST_INFER_NODE} \n \
@@ -115,6 +122,12 @@ class HST_infer_node(Node):
             except:
                 self.human_positions[i] = []
 
+        try:
+            t, r = self.tf2_array_transformation(source_frame=STRETCH_BASE_FRAME, target_frame='map')
+            self.robot_positions.append(t)
+        except:
+            print("FAILED TO GET ROBOT POSE")
+
     def _prediction_timer_callback(self) -> None:
         start_time = time.time()
 
@@ -133,6 +146,10 @@ class HST_infer_node(Node):
                     agent_orientation_map_np[:,i,HISTORY_LENGTH,:] = np.array(self.human_positions[i][-1][2])
                     tracked_agents.append(i)
                     human_t[i] = self.human_positions[i][-1]
+
+            robot_position_map_np = np.zeros((1, WINDOW_LENGTH, 2))
+            for j in range(0, min(len(self.robot_positions[i]), HISTORY_LENGTH * 4), 4):
+                robot_position_map_np[:,HISTORY_LENGTH - int(j / 4),:] = np.array(self.robot_positions[-1 - j][:2])
 
         print("HUMAN POSITIONS: ", self.human_positions)
         print("AGENT POSITION MAP NP: ", agent_position_map_np)
@@ -157,15 +174,15 @@ class HST_infer_node(Node):
         agent_orientation = tf.convert_to_tensor(np.full((1,1,hst_config.hst_dataset_param.num_steps,1),
                                                         np.nan, dtype=float))
         # TODO: robot remains static
-        t, r = self.tf2_array_transformation(source_frame=STRETCH_BASE_FRAME, target_frame='map')
-        self.robot_positions.append(t)
-        robot_position = np.array(self.robot_positions[len(self.robot_positions)-hst_config.hst_dataset_param.num_steps:])
-        robot_position = tf.convert_to_tensor(np.expand_dims(robot_position, 0))
+        # t, r = self.tf2_array_transformation(source_frame=STRETCH_BASE_FRAME, target_frame='map')
+        # self.robot_positions.append(t)
+        # robot_position = np.array(self.robot_positions[len(self.robot_positions)-hst_config.hst_dataset_param.num_steps:])
+        # robot_position = tf.convert_to_tensor(np.expand_dims(robot_position, 0))
 
         input_batch = {
             'agents/position': agent_position_map,
-            'robot/position': robot_position,
-            }
+            'robot/position': robot_position_map_np,
+        }
 
         inference_start_time = time.time()
         full_pred, output_batch = self.model(input_batch, training=False)
@@ -224,6 +241,131 @@ class HST_infer_node(Node):
         prediction_msg.timestep = timestep_float
 
         self._prediction_pub.publish(prediction_msg)
+
+        tracked_agents_msg = TrackedAgents()
+        tracked_agents_msg.header.frame_id = "map"
+        tas_list = []
+
+        r_ta_msg = TrackedAgent()
+        r_ta_msg.track_id = 0
+        r_ta_msg.type = 0
+        r_ta_msg.name = str(0)
+        if len(self.robot_positions) > 1:
+            diff = np.linalg.norm(self.robot_positions[-1] - self.robot_positions[-1])
+            if diff > STATIC_THRESHOLD:
+                r_ta_msg.state = 1
+            else:
+                r_ta_msg.state = 0
+
+        r_ts_list = []
+
+        r_ts_pose = PoseWithCovariance()
+        r_ts_twist = TwistWithCovariance()
+        r_ts_accel = AccelWithCovariance()
+
+        r_pose = np.array(self.robot_positions[-1][:2])
+
+        r_ts_pose.pose.position.x = r_pose[0]
+        r_ts_pose.pose.position.y = r_pose[1]
+
+        if len(self.robot_positions) > 1:
+            r_prev_pose = np.array(self.robot_positions[-2][:2])
+
+            r_ts_twist.twist.linear.x = (r_pose[0] - r_prev_pose[0]) / TIMESTEP
+            r_ts_twist.twist.linear.y = (r_pose[1] - r_prev_pose[1]) / TIMESTEP
+        else:
+            r_ts_twist.twist.linear.x = 0.0
+            r_ts_twist.twist.linear.y = 0.0
+
+            r_ts_accel.accel.linear.x = 0.0
+            r_ts_accel.accel.linear.y = 0.0
+
+        if len(self.robot_positions) > 2:
+            r_prev_prev_pose = np.array(self.robot_positions[-3][:2])
+
+            r_prev_twist_x = (r_prev_pose[0] - r_prev_prev_pose[0]) / TIMESTEP
+            r_prev_twist_y = (r_prev_pose[1] - r_prev_prev_pose[1]) / TIMESTEP
+
+            r_ts_accel.accel.linear.x = (r_ts_twist.twist.linear.x - r_prev_twist_x) / TIMESTEP
+            r_ts_accel.accel.linear.y = (r_ts_twist.twist.linear.y - r_prev_twist_y) / TIMESTEP
+        else:
+            r_ts_accel.accel.linear.x = 0.0
+            r_ts_accel.accel.linear.y = 0.0
+
+        r_ts = TrackedSegment()
+        r_ts.type = 1
+        r_ts.pose = r_ts_pose
+        r_ts.twist = r_ts_twist
+        r_ts.accel = r_ts.accel
+
+        r_ts_list.append(r_ts)
+
+        r_ta_msg.segments = r_ts_list
+        tas_list.append(r_ta_msg)
+
+        for i in range(ACTIVE_AGENT_NUM):
+            ta_msg = TrackedAgent()
+            ta_msg.track_id = i + 1
+            ta_msg.type = 0
+            ta_msg.name = str(i + 1)
+            
+            if len(self.human_positions[i]) > 1:
+                diff = np.linalg.norm(self.human_positions[i][-1] - self.human_positions[i][-2])
+                if diff > STATIC_THRESHOLD:
+                    ta_msg.state = 1
+                else:
+                    ta_msg.state = 0
+
+            ts_list = []
+
+            ts_pose = PoseWithCovariance()
+            ts_twist = TwistWithCovariance()
+            ts_accel = AccelWithCovariance()
+
+            pose = np.array(self.human_positions[i][-1][:2])
+
+            ts_pose.pose.position.x = pose[0]
+            ts_pose.pose.position.y = pose[1]
+
+            if len(self.human_positions[i]) > 1:
+                print("LEN SELF> HUMANS I: ", len(self.human_positions[i]), j)
+                prev_pose = np.array(self.human_positions[i][-2][:2])
+
+                ts_twist.twist.linear.x = (pose[0] - prev_pose[0]) / TIMESTEP
+                ts_twist.twist.linear.y = (pose[1] - prev_pose[1]) / TIMESTEP
+            else:
+                ts_twist.twist.linear.x = 0.0
+                ts_twist.twist.linear.y = 0.0
+
+                ts_accel.accel.linear.x = 0.0
+                ts_accel.accel.linear.y = 0.0
+
+            if len(self.human_positions[i]) > 2:
+                prev_prev_pose = np.array(self.human_positions[i][-3][:2])
+
+                prev_twist_x = (prev_pose[0] - prev_prev_pose[0]) / TIMESTEP
+                prev_twist_y = (prev_pose[1] - prev_prev_pose[1]) / TIMESTEP
+
+                ts_accel.accel.linear.x = (ts_twist.twist.linear.x - prev_twist_x) / TIMESTEP
+                ts_accel.accel.linear.y = (ts_twist.twist.linear.y - prev_twist_y) / TIMESTEP
+            else:
+                ts_accel.accel.linear.x = 0.0
+                ts_accel.accel.linear.y = 0.0
+
+            ts = TrackedSegment()
+            ts.type = 1
+            ts.pose = ts_pose
+            ts.twist = ts_twist
+            ts.accel = ts.accel
+
+            ts_list.append(ts)
+
+            ta_msg.segments = ts_list
+            tas_list.append(ta_msg)
+
+        tracked_agents_msg.agents = tas_list
+        self._tracked_agents_pub.publish(tracked_agents_msg)
+
         current_time = time.time()
         print("TIME: ", current_time - self.time, current_time)
         self.time = current_time
@@ -240,6 +382,7 @@ class HST_infer_node(Node):
                 "human_pos_HST_ATMD": multi_human_pos_ATMD,
                 "HST_mode_weights": agent_position_prob,
                 "human_T": human_t,
+                "robot_T": self.robot_positions[-1]
             }
 
             if self.counter == 0:

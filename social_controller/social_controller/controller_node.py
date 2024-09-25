@@ -26,6 +26,7 @@ class ControllerNode(Node):
         predictions = np.array(msg.predictions.data)
         logits = np.array(msg.logits.data)
         predictions = np.reshape(predictions, (12, 19, 6, 2))
+        print(predictions)
 
 def main(args=None):
     
