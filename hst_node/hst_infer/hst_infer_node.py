@@ -246,62 +246,62 @@ class HST_infer_node(Node):
         tracked_agents_msg.header.frame_id = "map"
         tas_list = []
 
-        r_ta_msg = TrackedAgent()
-        r_ta_msg.track_id = 0
-        r_ta_msg.type = 0
-        r_ta_msg.name = str(0)
-        if len(self.robot_positions) > 1:
-            diff = np.linalg.norm(self.robot_positions[-1] - self.robot_positions[-1])
-            if diff > STATIC_THRESHOLD:
-                r_ta_msg.state = 1
-            else:
-                r_ta_msg.state = 0
+        # r_ta_msg = TrackedAgent()
+        # r_ta_msg.track_id = 0
+        # r_ta_msg.type = 0
+        # r_ta_msg.name = str(0)
+        # if len(self.robot_positions) > 1:
+        #     diff = np.linalg.norm(self.robot_positions[-1] - self.robot_positions[-1])
+        #     if diff > STATIC_THRESHOLD:
+        #         r_ta_msg.state = 1
+        #     else:
+        #         r_ta_msg.state = 0
 
-        r_ts_list = []
+        # r_ts_list = []
 
-        r_ts_pose = PoseWithCovariance()
-        r_ts_twist = TwistWithCovariance()
-        r_ts_accel = AccelWithCovariance()
+        # r_ts_pose = PoseWithCovariance()
+        # r_ts_twist = TwistWithCovariance()
+        # r_ts_accel = AccelWithCovariance()
 
-        r_pose = np.array(self.robot_positions[-1][:2])
+        # r_pose = np.array(self.robot_positions[-1][:2])
 
-        r_ts_pose.pose.position.x = r_pose[0]
-        r_ts_pose.pose.position.y = r_pose[1]
+        # r_ts_pose.pose.position.x = r_pose[0]
+        # r_ts_pose.pose.position.y = r_pose[1]
 
-        if len(self.robot_positions) > 1:
-            r_prev_pose = np.array(self.robot_positions[-2][:2])
+        # if len(self.robot_positions) > 1:
+        #     r_prev_pose = np.array(self.robot_positions[-2][:2])
 
-            r_ts_twist.twist.linear.x = (r_pose[0] - r_prev_pose[0]) / TIMESTEP
-            r_ts_twist.twist.linear.y = (r_pose[1] - r_prev_pose[1]) / TIMESTEP
-        else:
-            r_ts_twist.twist.linear.x = 0.0
-            r_ts_twist.twist.linear.y = 0.0
+        #     r_ts_twist.twist.linear.x = (r_pose[0] - r_prev_pose[0]) / TIMESTEP
+        #     r_ts_twist.twist.linear.y = (r_pose[1] - r_prev_pose[1]) / TIMESTEP
+        # else:
+        #     r_ts_twist.twist.linear.x = 0.0
+        #     r_ts_twist.twist.linear.y = 0.0
 
-            r_ts_accel.accel.linear.x = 0.0
-            r_ts_accel.accel.linear.y = 0.0
+        #     r_ts_accel.accel.linear.x = 0.0
+        #     r_ts_accel.accel.linear.y = 0.0
 
-        if len(self.robot_positions) > 2:
-            r_prev_prev_pose = np.array(self.robot_positions[-3][:2])
+        # if len(self.robot_positions) > 2:
+        #     r_prev_prev_pose = np.array(self.robot_positions[-3][:2])
 
-            r_prev_twist_x = (r_prev_pose[0] - r_prev_prev_pose[0]) / TIMESTEP
-            r_prev_twist_y = (r_prev_pose[1] - r_prev_prev_pose[1]) / TIMESTEP
+        #     r_prev_twist_x = (r_prev_pose[0] - r_prev_prev_pose[0]) / TIMESTEP
+        #     r_prev_twist_y = (r_prev_pose[1] - r_prev_prev_pose[1]) / TIMESTEP
 
-            r_ts_accel.accel.linear.x = (r_ts_twist.twist.linear.x - r_prev_twist_x) / TIMESTEP
-            r_ts_accel.accel.linear.y = (r_ts_twist.twist.linear.y - r_prev_twist_y) / TIMESTEP
-        else:
-            r_ts_accel.accel.linear.x = 0.0
-            r_ts_accel.accel.linear.y = 0.0
+        #     r_ts_accel.accel.linear.x = (r_ts_twist.twist.linear.x - r_prev_twist_x) / TIMESTEP
+        #     r_ts_accel.accel.linear.y = (r_ts_twist.twist.linear.y - r_prev_twist_y) / TIMESTEP
+        # else:
+        #     r_ts_accel.accel.linear.x = 0.0
+        #     r_ts_accel.accel.linear.y = 0.0
 
-        r_ts = TrackedSegment()
-        r_ts.type = 1
-        r_ts.pose = r_ts_pose
-        r_ts.twist = r_ts_twist
-        r_ts.accel = r_ts.accel
+        # r_ts = TrackedSegment()
+        # r_ts.type = 1
+        # r_ts.pose = r_ts_pose
+        # r_ts.twist = r_ts_twist
+        # r_ts.accel = r_ts.accel
 
-        r_ts_list.append(r_ts)
+        # r_ts_list.append(r_ts)
 
-        r_ta_msg.segments = r_ts_list
-        tas_list.append(r_ta_msg)
+        # r_ta_msg.segments = r_ts_list
+        # tas_list.append(r_ta_msg)
 
         for i in range(ACTIVE_AGENT_NUM):
             ta_msg = TrackedAgent()
