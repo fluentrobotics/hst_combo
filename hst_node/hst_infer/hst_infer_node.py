@@ -54,6 +54,16 @@ class HST_infer_node(Node):
                  ):
         
         super().__init__(HST_INFER_NODE)
+
+        gpus = tf.config.list_physical_devices('GPU')
+        if gpus:
+            try:
+                for gpu in gpus:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+                    print("LETS SEE")
+            except RuntimeError as e:
+                print(e)
+
         self.skeleton_databuffer = skeleton_buffer(history_len=hst_config.hst_model_param.num_history_steps)
 
         # Subscriber #######################################
@@ -108,18 +118,22 @@ class HST_infer_node(Node):
         self.last_mocap_pose = None
         self.prediction_callback_counter = 0
 
-        self.timer = self.create_timer(0.1, self.timer_callback)
-        self.prediction_timer = self.create_timer(0.1, self._prediction_timer_callback)
+        self.timer = self.create_timer(0.05, self.timer_callback)
+        self.prediction_timer = self.create_timer(0.05, self._prediction_timer_callback)
 
     def timer_callback(self) -> None:
         for i in range(ACTIVE_AGENT_NUM):
             try:
+                #print("TRYING ", HUMAN_FRAME + "_" + str(i+1))
                 pose = self._get_human_motion_capture_pose(HUMAN_FRAME + "_" + str(i+1), 'map')
                 if i in self.human_positions:
+                    #print("IF ")
                     self.human_positions[i].append(pose)
                 else:
+                    #print("ELSE ")
                     self.human_positions[i] = [pose]
             except:
+                print("FAUKED ", HUMAN_FRAME + "_" + str(i+1))
                 self.human_positions[i] = []
 
         try:
@@ -127,6 +141,7 @@ class HST_infer_node(Node):
             self.robot_positions.append(t)
         except:
             print("FAILED TO GET ROBOT POSE")
+        print("spotemgotem")
 
     def _prediction_timer_callback(self) -> None:
         start_time = time.time()
@@ -138,21 +153,25 @@ class HST_infer_node(Node):
 
             tracked_agents = []
             for i in range(ACTIVE_AGENT_NUM):
+                #print("LEN HUMAN POSITIONS", len(self.human_positions[i]))
                 if len(self.human_positions[i]) > 0:
-                    for j in range(0, min(len(self.human_positions[i]), HISTORY_LENGTH * 4), 4):
-                        agent_position_map_np[:,i,HISTORY_LENGTH - int(j / 4),:] = np.array(self.human_positions[i][-1 - j][:2])
+                    for j in range(0, min(len(self.human_positions[i]), HISTORY_LENGTH * NODE_SKIP_INDEX), NODE_SKIP_INDEX):
+                        agent_position_map_np[:,i,HISTORY_LENGTH - int(j / NODE_SKIP_INDEX),:] = np.array(self.human_positions[i][-1 - j][:2])
                         #agent_orientation_map_np[:,i,HISTORY_LENGTH,:] = np.array(self.human_positions[i][-1][2])
                     agent_position_map_np[:,i,HISTORY_LENGTH,:] = np.array(self.human_positions[i][-1][:2])
                     agent_orientation_map_np[:,i,HISTORY_LENGTH,:] = np.array(self.human_positions[i][-1][2])
                     tracked_agents.append(i)
                     human_t[i] = self.human_positions[i][-1]
 
+            #print("I ", i)
+            #print(len(self.robot_positions))
+            #print(len(self.robot_positions[i]))
             robot_position_map_np = np.zeros((1, WINDOW_LENGTH, 2))
-            for j in range(0, min(len(self.robot_positions[i]), HISTORY_LENGTH * 4), 4):
-                robot_position_map_np[:,HISTORY_LENGTH - int(j / 4),:] = np.array(self.robot_positions[-1 - j][:2])
+            for j in range(0, min(len(self.robot_positions), HISTORY_LENGTH * NODE_SKIP_INDEX), NODE_SKIP_INDEX):
+                robot_position_map_np[:,HISTORY_LENGTH - int(j / NODE_SKIP_INDEX),:] = np.array(self.robot_positions[-1 - j][:2])
 
-        print("HUMAN POSITIONS: ", self.human_positions)
-        print("AGENT POSITION MAP NP: ", agent_position_map_np)
+        #("HUMAN POSITIONS: ", self.human_positions)
+        #print("AGENT POSITION MAP NP: ", agent_position_map_np)
 
         ### robot position
         robot_pos_TD = np.zeros((HISTORY_LENGTH, DIM_XYZ))
@@ -179,6 +198,12 @@ class HST_infer_node(Node):
         # robot_position = np.array(self.robot_positions[len(self.robot_positions)-hst_config.hst_dataset_param.num_steps:])
         # robot_position = tf.convert_to_tensor(np.expand_dims(robot_position, 0))
 
+        for i in range(ACTIVE_AGENT_NUM):
+            back = min(len(self.human_positions[i]), HISTORY_LENGTH * NODE_SKIP_INDEX)
+            print("agent ", i)
+            print("history ", self.human_positions[i][-1-back:-1])
+            print("pred using ", agent_position_map_np[0,i,:,:])
+
         input_batch = {
             'agents/position': agent_position_map,
             'robot/position': robot_position_map_np,
@@ -188,6 +213,9 @@ class HST_infer_node(Node):
         full_pred, output_batch = self.model(input_batch, training=False)
         agent_position_pred = full_pred['agents/position']
         agent_position_logits = full_pred['mixture_logits']
+
+        # print("MODEL SUMMARY ")
+        # print(self.model.summary())
 
         app_np = tf.squeeze(agent_position_pred).numpy()
         apl_np = tf.squeeze(agent_position_logits).numpy()
@@ -204,7 +232,7 @@ class HST_infer_node(Node):
         agent_position_prob = np.exp(agent_position_logits) / sum(np.exp(agent_position_logits))
 
         predarray = Float32MultiArray()
-        print("LOGITS: ", apl_np)
+        #print("LOGITS: ", apl_np)
         #print("PREDICTION 1: ", app_np[0,:,0,:])
         #print("PREDICTION 2: ", app_np[1,:,0,:])
         #print("PREDICTION 1 STRETCH: ", app_np_stretch[0,:,0,:])
@@ -370,6 +398,7 @@ class HST_infer_node(Node):
         print("TIME: ", current_time - self.time, current_time)
         self.time = current_time
         #print("TOTAL RUNTIME: ", time.time() - start_time)
+        print("TOTAL TIME IN HST ", time.time() - start_time)
 
 
         if EVALUATION_NODE:
@@ -664,7 +693,7 @@ class HST_infer_node(Node):
                 markerarray.markers = markers_list
                 self._traj_marker_pub.publish(markerarray)
                 predarray = Float32MultiArray()
-                print("LOGITS: ", apl_np)
+                #print("LOGITS: ", apl_np)
                 #print("PREDICTION 1: ", app_np[0,:,0,:])
                 #print("PREDICTION 2: ", app_np[1,:,0,:])
                 #print("PREDICTION 1 STRETCH: ", app_np_stretch[0,:,0,:])
