@@ -133,7 +133,7 @@ class HST_infer_node(Node):
                     #print("ELSE ")
                     self.human_positions[i] = [pose]
             except:
-                print("FAUKED ", HUMAN_FRAME + "_" + str(i+1))
+                #print("FAUKED ", HUMAN_FRAME + "_" + str(i+1))
                 self.human_positions[i] = []
 
         try:
@@ -141,7 +141,6 @@ class HST_infer_node(Node):
             self.robot_positions.append(t)
         except:
             print("FAILED TO GET ROBOT POSE")
-        print("spotemgotem")
 
     def _prediction_timer_callback(self) -> None:
         start_time = time.time()
@@ -156,9 +155,9 @@ class HST_infer_node(Node):
                 #print("LEN HUMAN POSITIONS", len(self.human_positions[i]))
                 if len(self.human_positions[i]) > 0:
                     for j in range(0, min(len(self.human_positions[i]), HISTORY_LENGTH * NODE_SKIP_INDEX), NODE_SKIP_INDEX):
-                        agent_position_map_np[:,i,HISTORY_LENGTH - int(j / NODE_SKIP_INDEX),:] = np.array(self.human_positions[i][-1 - j][:2])
+                        agent_position_map_np[:,i,HISTORY_LENGTH - int(j / NODE_SKIP_INDEX),:] = np.array(self.human_positions[i][-1 - j][:2]) + 5
                         #agent_orientation_map_np[:,i,HISTORY_LENGTH,:] = np.array(self.human_positions[i][-1][2])
-                    agent_position_map_np[:,i,HISTORY_LENGTH,:] = np.array(self.human_positions[i][-1][:2])
+                    agent_position_map_np[:,i,HISTORY_LENGTH,:] = np.array(self.human_positions[i][-1][:2]) + 5
                     agent_orientation_map_np[:,i,HISTORY_LENGTH,:] = np.array(self.human_positions[i][-1][2])
                     tracked_agents.append(i)
                     human_t[i] = self.human_positions[i][-1]
@@ -166,9 +165,14 @@ class HST_infer_node(Node):
             #print("I ", i)
             #print(len(self.robot_positions))
             #print(len(self.robot_positions[i]))
-            robot_position_map_np = np.zeros((1, WINDOW_LENGTH, 2))
-            for j in range(0, min(len(self.robot_positions), HISTORY_LENGTH * NODE_SKIP_INDEX), NODE_SKIP_INDEX):
-                robot_position_map_np[:,HISTORY_LENGTH - int(j / NODE_SKIP_INDEX),:] = np.array(self.robot_positions[-1 - j][:2])
+            robot_position_map_np = np.full((1, WINDOW_LENGTH, 2), -10)
+            if ROBOT_AS_HUMAN:
+                for j in range(0, min(len(self.robot_positions), HISTORY_LENGTH * NODE_SKIP_INDEX), NODE_SKIP_INDEX):
+                    agent_position_map_np[:,ACTIVE_AGENT_NUM,HISTORY_LENGTH - int(j / NODE_SKIP_INDEX),:] = np.array(self.robot_positions[-1 - j][:2]) + 5
+                agent_position_map_np[:,ACTIVE_AGENT_NUM,HISTORY_LENGTH,:] = np.array(self.robot_positions[-1][:2]) + 5
+            else:
+                for j in range(0, min(len(self.robot_positions), HISTORY_LENGTH * NODE_SKIP_INDEX), NODE_SKIP_INDEX):
+                    robot_position_map_np[:,HISTORY_LENGTH - int(j / NODE_SKIP_INDEX),:] = np.array(self.robot_positions[-1 - j][:2])
 
         #("HUMAN POSITIONS: ", self.human_positions)
         #print("AGENT POSITION MAP NP: ", agent_position_map_np)
@@ -200,9 +204,9 @@ class HST_infer_node(Node):
 
         for i in range(ACTIVE_AGENT_NUM):
             back = min(len(self.human_positions[i]), HISTORY_LENGTH * NODE_SKIP_INDEX)
-            print("agent ", i)
-            print("history ", self.human_positions[i][-1-back:-1])
-            print("pred using ", agent_position_map_np[0,i,:,:])
+            #print("agent ", i)
+            #print("history ", self.human_positions[i][-1-back:-1])
+            #print("pred using ", agent_position_map_np[0,i,:,:])
 
         input_batch = {
             'agents/position': agent_position_map,
@@ -211,6 +215,7 @@ class HST_infer_node(Node):
 
         inference_start_time = time.time()
         full_pred, output_batch = self.model(input_batch, training=False)
+        #print("inf time ", time.time() - inference_start_time)
         agent_position_pred = full_pred['agents/position']
         agent_position_logits = full_pred['mixture_logits']
 
@@ -334,16 +339,22 @@ class HST_infer_node(Node):
         for i in range(ACTIVE_AGENT_NUM):
             ta_msg = TrackedAgent()
             ta_msg.track_id = i + 1
-            ta_msg.type = 0
+            ta_msg.type = 1
             ta_msg.name = str(i + 1)
             
             if len(self.human_positions[i]) > 1:
                 diff = np.linalg.norm(self.human_positions[i][-1] - self.human_positions[i][-2])
-                if diff > STATIC_THRESHOLD:
-                    ta_msg.state = 1
-                else:
-                    ta_msg.state = 0
+                # if diff > STATIC_THRESHOLD:
+                #     print("SETTING STATE TO MOVING 1")
+                #     ta_msg.state = 1
+                # else:
+                #     print("SETTING STATE TO STATIC 0")
+                #     ta_msg.state = 2
+                ta_msg.state = 1
+            else:
+                print("NOT EVEN BOTHERING MAN")
 
+            print("STATE ", ta_msg.state)
             ts_list = []
 
             ts_pose = PoseWithCovariance()
@@ -356,7 +367,7 @@ class HST_infer_node(Node):
             ts_pose.pose.position.y = pose[1]
 
             if len(self.human_positions[i]) > 1:
-                print("LEN SELF> HUMANS I: ", len(self.human_positions[i]), j)
+                #print("LEN SELF> HUMANS I: ", len(self.human_positions[i]), j)
                 prev_pose = np.array(self.human_positions[i][-2][:2])
 
                 ts_twist.twist.linear.x = (pose[0] - prev_pose[0]) / TIMESTEP
@@ -447,7 +458,7 @@ class HST_infer_node(Node):
         keypointATKD, human_pos_ATD, keypoint_mask_ATK = self.skeleton_databuffer.get_data_array()
         A,T,K,D = keypointATKD.shape
 
-        print("ATKD: ", A, T, K, D)
+        #print("ATKD: ", A, T, K, D)
 
         current_human_id_set = self.skeleton_databuffer.get_current_multihumanID_set()
         #print("CURRENT HUMAN ID SET: ", current_human_id_set)
