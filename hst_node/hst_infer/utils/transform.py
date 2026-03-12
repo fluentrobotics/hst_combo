@@ -27,4 +27,5 @@ def transformstamped_to_tr(tfstamped: TransformStamped) -> tuple[np.ndarray, np.
     """
     return np.ndarray translation(3,), rotation(3,3)
     """
+    #print("ts ", tfstamped.header.stamp)
     return transform_to_tr(tfstamped.transform)

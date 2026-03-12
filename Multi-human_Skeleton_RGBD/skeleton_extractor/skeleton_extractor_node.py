@@ -121,6 +121,7 @@ class skeletal_extractor_node(Node):
         self.no_human_detection = False
         self.no_message_debugger = False
 
+        #return
 
         
         # Subscriber ##########################################################

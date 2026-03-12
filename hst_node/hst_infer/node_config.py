@@ -55,3 +55,5 @@ MOTION_CAPTURE_TF: bool = True
 HUMAN_FRAME: str = "human"
 EGOCENTRIC: bool = False
 MOTION_CAPTURE_HISTORY: bool = True
+
+RUNNING_OFFLINE = True

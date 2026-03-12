@@ -1,0 +1,7 @@
+std_msgs/Float32MultiArray predictions
+std_msgs/Float32MultiArray logits
+std_msgs/Int32 num_agents
+std_msgs/Int32 history_length
+std_msgs/Int32 window_length
+std_msgs/Int32 max_agents
+std_msgs/Float32 timestep
